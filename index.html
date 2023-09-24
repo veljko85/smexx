@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Smexx Hero Page</title>
+
+        <!-- lootie -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.6.4/lottie_svg.min.js"></script>
+
+        <!-- Babylon.js -->
+        <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script> -->
+        <!-- <script src="https://assets.babylonjs.com/generated/Assets.js"></script> -->
+        <!-- <script src="https://cdn.babylonjs.com/recast.js"></script> -->
+        <!-- <script src="https://cdn.babylonjs.com/ammo.js"></script> -->
+        <!-- <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script> -->
+        <!-- <script src="https://cdn.babylonjs.com/cannon.js"></script> -->
+        <!-- <script src="https://cdn.babylonjs.com/Oimo.js"></script> -->
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <!-- <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script> -->
+        <!-- <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script> -->
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <!-- <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script> -->
+        <!-- <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script> -->
+        <!-- <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script> -->
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+            
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+
+            #alpha, #beta {
+                position: absolute;
+                left: 20px;
+                font-size: 70px;
+            }
+            #alpha {
+                top: 100px;
+            }
+            #beta {
+                top: 200px;
+            }
+
+        </style>
+    </head>
+<body>
+  
+  <div id="customLoadingScreenDiv" style="  width: 100%; height: 100%; background-image: url(ScreenshotSmall.jpg); background-size: cover; background-position: center; z-index: 100; position: absolute; top: 0; left: 0;">
+    <div id="lottieWraper" style="  width: 2.6vw; height: 2.6vw; top: calc(50% - 1.3vw); left: calc(50% - 1.3vw); position: absolute; transform: translate(-50%, -50%);"></div>
+  </div>
+  <div id="cover" style="position: absolute; background-color: rgb(1, 1, 1, 0); z-index: 1000; width: 100%; height: 100%; display: none;"></div>
+  <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+  </div>
+  <!-- SCRIPT -->
+  <script>
+    
+    var canvas = document.getElementById("renderCanvas");
+
+    var startRenderLoop = function (engine, canvas) {
+        engine.runRenderLoop(function () {
+            if (sceneToRender && sceneToRender.activeCamera) {
+                sceneToRender.render();
+            }
+            engine.setHardwareScalingLevel(1 / window.devicePixelRatio);
+            engine.adaptToDeviceRatio = true;
+        });
+    }
+
+    var engine = null;
+    var scene = null;
+    var sceneToRender = null;
+    var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+    
+   // FOR LOADING
+    BABYLON.DefaultLoadingScreen.prototype.displayLoadingUI = function () {
+      if (document.getElementById("customLoadingScreenDiv")) {
+        // Do not add a loading screen if there is already one
+        document.getElementById("customLoadingScreenDiv").style.display = "initial";
+        return;
+      }
+    };
+    //lottie
+    let animItem = bodymovin.loadAnimation({
+      wrapper: document.getElementById("lottieWraper"),
+      animType: "svg",
+      loop: true,
+      path: "https://raw.githubusercontent.com/thesvbd/Lottie-examples/master/assets/animations/loading.json",
+    });
+    animItem.resize();
+    animItem.addEventListener("DOMLoaded", function () {
+      animItem.playSegments(
+        [
+          [0, 100],
+          [32, 100],
+        ],
+        true
+      );
+    });
+
+    BABYLON.DefaultLoadingScreen.prototype.hideLoadingUI = function () {
+      document.getElementById("customLoadingScreenDiv").style.display = "none";
+      // console.log("scene is now loaded");
+    };
+    //end of loading
+    
+    //CREATE SCENE
+    var createScene = async function () {
+    
+    //loading
+    engine.displayLoadingUI();
+    // This creates a basic Babylon Scene object (non-mesh)
+    var scene = new BABYLON.Scene(engine);
+
+    //CAMERA
+    var camera = new BABYLON.ArcRotateCamera(
+      'camera1',
+      Math.PI / 2,
+      Math.PI / 2,
+      0,
+      new  BABYLON.Vector3(0, -0.05, 0),
+      scene
+    );
+    // camera.attachControl(canvas, true);
+    if (canvas.width < canvas.height) {
+      camera.setPosition(new  BABYLON.Vector3(0, -0.1, 1.5));
+    } else {
+      camera.setPosition(new  BABYLON.Vector3(0, -0.1, 1));
+    }
+    camera.minZ = 0.1;
+    // camera.lowerRadiusLimit = 0.8;
+    // camera.upperRadiusLimit = 1;
+    // camera.wheelDeltaPercentage = 0.1;
+
+    //camera alpha and beta limit
+    camera.lowerAlphaLimit = 0.8;
+    camera.upperAlphaLimit = 2.2;
+    camera.lowerBetaLimit = 0.8;
+    camera.upperBetaLimit = 2.2;
+    
+    
+    //CREATE COVER FOR MOBILE VERSION
+    if (canvas.width < canvas.height) {
+      document.getElementById("cover").style.display = "block";
+      document.getElementById("lottieWraper").style.width = document.getElementById("lottieWraper").style.height = "10vw"
+    }
+    // ENVIROMENT;
+    // scene.environmentTexture = new BABYLON.CubeTexture(
+    //   "025.env",
+    //   scene
+    // );
+    // scene.environmentIntensity = 3;
+
+ 
+
+    //IMPORT GLB
+    BABYLON.SceneLoader.ImportMeshAsync(
+    "",
+    "",
+    // "https://mega-holz.de/zaunplaner/fence-configurator-assets/boleo/mesh/",
+    "gace9.glb"
+    ).then(
+    (result) => {
+        // console.log(result)
+        result.animationGroups[0].stop()
+        result.animationGroups[0].play()
+        result.animationGroups[0].animatables[0].onAnimationEnd = function () {
+            result.animationGroups[1].play(true)
+        }
+        for (let i = 0; i < result.meshes.length; i++) {
+            // console.log(i, result.meshes[i].name);
+        //    // if(i != 0)result.meshes[i].material._transparencyMode = 1;
+        if(i != 0)result.meshes[i].material.disableLighting = true;
+        }
+        result.meshes[1].scaling = result.meshes[2].scaling = result.meshes[3].scaling = new BABYLON.Vector3(0.9,0.9,0.9)
+        result.meshes[4].isVisible = result.meshes[5].isVisible = result.meshes[6].isVisible = false
+        // result.meshes[1].isVisible = result.meshes[2].isVisible = result.meshes[3].isVisible = false
+        //ACTIVATE TEXT
+        setTimeout(() => {
+          if (canvas.width < canvas.height) {
+          setMeshPosition(goActiveText, 20, 12)
+          } else {
+            setMeshPosition(goActiveText, 10, 3)
+          }
+          // setTimeout(() => {
+          //   if (canvas.width < canvas.height) {
+          //   setMeshPosition(myText2, 18, 10)
+          //   } else {
+          //     setMeshPosition(myText2, -7, -2)
+          //   }
+          // }, 500);
+        }, 1000);
+
+        // CLONE AND CREATE CLOUDS
+        let cloudClone1 = result.meshes[6].clone("cloudClone1")
+        cloudClone1.isVisible = true
+        cloudClone1.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+        cloudClone1.rotationQuaternion = null;
+        cloudClone1.rotation.x = 1.57
+        cloudClone1.position = new BABYLON.Vector3(1,-0.2,-1)
+        let cloudClone1Dir = "right"
+
+        let cloudClone2 = result.meshes[6].clone("cloudClone1")
+        cloudClone2.isVisible = true
+        cloudClone2.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+        cloudClone2.rotationQuaternion = null;
+        cloudClone2.rotation.x = 1.57
+        cloudClone2.position = new BABYLON.Vector3(-1.5,0,-2)
+        let cloudClone2Dir = "left"
+
+        let cloudClone3 = result.meshes[5].clone("cloudClone1")
+        cloudClone3.isVisible = true
+        cloudClone3.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+        cloudClone3.rotationQuaternion = null;
+        cloudClone3.rotation.x = 1.57
+        cloudClone3.position = new BABYLON.Vector3(0.3,0.25,0.6)
+        let cloudClone3Rot = "away"
+        cloudClone3Dir = "right"
+
+        let cloudClone4 = result.meshes[6].clone("cloudClone1")
+        cloudClone4.isVisible = true
+        cloudClone4.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+        cloudClone4.rotationQuaternion = null;
+        cloudClone4.rotation.x = 1.57
+        cloudClone4.position = new BABYLON.Vector3(-0.3,0.4,0.4)
+
+        let cloudClone4Rot = "back"
+        let cloudClone4Dir = "left"
+
+        let cloudClone5 = result.meshes[5].clone("cloudClone1")
+        cloudClone5.isVisible = true
+        cloudClone5.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+        cloudClone5.rotationQuaternion = null;
+        cloudClone5.rotation.x = 1.57
+        cloudClone5.position = new BABYLON.Vector3(0,0,-0.5)
+        let cloudClone5Rot = "away"
+        cloudClone5Dir = "right"
+
+        scene.registerBeforeRender(() => {
+        if(cloudClone1.position.x < -2.2)cloudClone1Dir = "left"
+        if(cloudClone1.position.x > 2.2)cloudClone1Dir = "right"
+        if(cloudClone1Dir == "right")cloudClone1.position.x -= 0.0005
+        if(cloudClone1Dir == "left")cloudClone1.position.x += 0.0005
+
+        if(cloudClone2.position.x < -3)cloudClone2Dir = "left"
+        if(cloudClone2.position.x > 3)cloudClone2Dir = "right"
+        if(cloudClone2Dir == "right")cloudClone2.position.x -= 0.00025
+        if(cloudClone2Dir == "left")cloudClone2.position.x += 0.00025
+
+        // if(cloudClone3.rotation.x < -1.8)cloudClone3Rot = "back"
+        // if(cloudClone3.rotation.x > -1.5)cloudClone3Rot = "away"
+        // if(cloudClone3Rot == "back")cloudClone3.rotation.x += 0.001
+        // if(cloudClone3Rot == "away")cloudClone3.rotation.x -= 0.001
+
+        if(cloudClone3.position.x < -0.5)cloudClone3Dir = "left"
+        if(cloudClone3.position.x > 0.5)cloudClone3Dir = "right"
+        if(cloudClone3Dir == "right")cloudClone3.position.x -= 0.0001
+        if(cloudClone3Dir == "left")cloudClone3.position.x += 0.0001
+
+        // if(cloudClone4.rotation.x < -1.8)cloudClone4Rot = "back"
+        // if(cloudClone4.rotation.x > -1.5)cloudClone4Rot = "away"
+        // if(cloudClone4Rot == "back")cloudClone4.rotation.x += 0.001
+        // if(cloudClone4Rot == "away")cloudClone4.rotation.x -= 0.001
+
+        if(cloudClone4.position.x < -0.5)cloudClone4Dir = "left"
+        if(cloudClone4.position.x > 0.5)cloudClone4Dir = "right"
+        if(cloudClone4Dir == "right")cloudClone4.position.x -= 0.0001
+        if(cloudClone4Dir == "left")cloudClone4.position.x += 0.0001
+            
+        if(cloudClone5.position.x < -1)cloudClone5Dir = "left"
+        if(cloudClone5.position.x > 1)cloudClone5Dir = "right"
+        if(cloudClone5Dir == "right")cloudClone5.position.x -= 0.0001
+        if(cloudClone5Dir == "left")cloudClone5.position.x += 0.0001
+        
+      });
+        
+      //IMPORT GLB END
+      scene.executeWhenReady(() => {
+         // hide loading spiner
+          engine.hideLoadingUI();
+         // scene render
+          engine.runRenderLoop(() => {
+            scene.render();
+          });
+
+      });
+      
+    });    
+
+    scene.environmentTexture = new BABYLON.CubeTexture(
+      "studio.env",
+      scene
+    );
+    scene.environmentIntensity = 1.5;
+
+    //LIGHT
+    var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    light.intensity = 2;
+
+    //MOUSE CONTROL - PARALAX
+    const canvasSize = { x: canvas.width, y: canvas.height };
+    const camSettings = {
+        lerpSpeed: 0.1,
+        lerpDistanceAlpha: 0.4,
+        lerpDistanceBeta: 0.4,
+        centerAlpha: camera.alpha,
+        centerBeta: camera.beta,
+        newAlpha: camera.alpha,
+        newBeta: camera.beta
+    };
+    const lerp = (a, b, n) => (1 - n) * a + n * b;
+
+    scene.onPointerMove = function (evt, pickInfo) {
+         const x = evt.pageX / canvasSize.x * 0.5 -0.25;//distance from center (curent 0.5)
+        const y = evt.pageY / canvasSize.y * 0.5 -0.25;//distance from center (curent 0.5)
+        camSettings.newAlpha = camSettings.centerAlpha + camSettings.lerpDistanceAlpha * x;
+        camSettings.newBeta = camSettings.centerBeta + camSettings.lerpDistanceBeta * y;
+    }
+
+    if(canvas.width > canvas.height){
+      scene.registerBeforeRender(() => {
+        camera.alpha = lerp(camera.alpha, camSettings.newAlpha, camSettings.lerpSpeed);
+        camera.beta = lerp(camera.beta, camSettings.newBeta, camSettings.lerpSpeed);
+      });
+    }
+
+    
+    //SKYBOX  
+    var skyBox = BABYLON.Mesh.CreateBox(
+      "SkyBox",
+      500,
+      scene,
+      false,
+      BABYLON.Mesh.BACKSIDE
+    );
+    skyBox.material = new BABYLON.SkyMaterial("sky", scene);
+    skyBox.material.inclination = 0;
+    skyBox.material.luminance = 0.7;
+    skyBox.material.azimuth = 0.25;
+    skyBox.position.y = 0;
+
+    //LENSE SYSTEM
+    const lensEmiter = BABYLON.MeshBuilder.CreateBox("lensEmiter", {height: 0.1, width: 0.1, depth: 0.1});
+    lensEmiter.position = new BABYLON.Vector3(-0.6,0.3,0)
+    lensEmiter.isVisible = false
+    var lensFlareSystem = new BABYLON.LensFlareSystem(
+      "lensFlareSystem", //name
+      lensEmiter, // emitter
+      scene
+    );
+    var flare00 = new BABYLON.LensFlare(0.2, 0.3, new BABYLON.Color3(1, 1, 1), "flare.png", lensFlareSystem);
+    var flare01 = new BABYLON.LensFlare(0.5, 0.5, new BABYLON.Color3(0.5, 0.5, 1), "flare.png", lensFlareSystem);
+    var flare02 = new BABYLON.LensFlare(0.2, 1.3, new BABYLON.Color3(1, 1, 1), "flare.png", lensFlareSystem);
+    var flare03 = new BABYLON.LensFlare(0.4, 0.7, new BABYLON.Color3(1, 0.5, 1), "flare.png", lensFlareSystem);
+    var flare04 = new BABYLON.LensFlare(0.1, 0.9, new BABYLON.Color3(1, 1, 1), "flare.png", lensFlareSystem);
+    var flare05 = new BABYLON.LensFlare(0.3, 1.1, new BABYLON.Color3(1, 1, 1), "flare.png", lensFlareSystem);
+
+    //TEXT
+    //2d text
+    var goActiveText = BABYLON.MeshBuilder.CreatePlane("goActiveText", {height:4.73, width: 15, /*sideOrientation: BABYLON.Mesh.DOUBLESIDE*/});
+    //goActiveText.position = textPosition
+    goActiveText.addRotation(0,Math.PI,0)
+    
+    if (canvas.width < canvas.height) {
+      goActiveText.position = new BABYLON.Vector3(0,20,-35)//(0,13,-35)
+    } else {
+      goActiveText.position = new BABYLON.Vector3(0,10,-10)//(0,2,-10)
+    }
+    var goActiveTextmat = new BABYLON.StandardMaterial("goActiveTextmat", scene);
+    var goActiveTexttex = new BABYLON.Texture(
+        "go-active.png",
+        scene
+    );
+    goActiveTexttex.hasAlpha = true;
+    goActiveTextmat.diffuseTexture = goActiveTexttex;
+    goActiveTextmat.useAlphaFromDiffuseTexture = true;
+    goActiveTextmat.backFaceCulling = false;
+    goActiveText.material = goActiveTextmat;
+
+    
+    //3d text
+    // var fontData = await (await fetch("Cocogoose_Regular.json")).json();
+    
+    // //text 1
+    // var myText1 = BABYLON.MeshBuilder.CreateText("myText1", "GO ACTIVE", fontData, {
+    //     size: 1.7,
+    //     resolution: 64, 
+    //     depth: 0.05
+    // });
+    // if (canvas.width < canvas.height) {
+    //   myText1.position = new BABYLON.Vector3(0,18,-35)//(0,13,-35)
+    // } else {
+    //   myText1.position = new BABYLON.Vector3(0,6,-10)//(0,2,-10)
+    // }
+    // myText1.rotationQuaternion = null;
+    // myText1.rotation.x = 3.14
+    // myText1.rotation.z = 3.14
+    // const myText1Material = new BABYLON.StandardMaterial("myText1Material", scene);
+    // myText1Material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    // myText1.material = myText1Material;
+
+    //text 2
+    // var myText2 = BABYLON.MeshBuilder.CreateText("myText2", "SMEXX", fontData, {
+    //     size: 1.7,
+    //     resolution: 64, 
+    //     depth: 0.05
+    // });
+    // if (canvas.width < canvas.height) {
+    //   myText2.position = new BABYLON.Vector3(0,18,-35)//(0,10,-35)
+    //   console.log('aaa')
+    // } else {
+    //   myText2.position = new BABYLON.Vector3(0,-7,-10)//(0,-2,-10)
+    // }
+    // myText2.rotationQuaternion = null;
+    // myText2.rotation.x = 3.14
+    // myText2.rotation.z = 3.14
+    // const myText2Material = new BABYLON.StandardMaterial("myText2Material", scene);
+    // myText2Material.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+    // myText2.material = myText2Material;
+    //POSITION TEXT ANIMATION
+    function setMeshPosition(mesh, oldY, newY){
+      var animationCameraTarget = new BABYLON.Animation(
+        "myAnimationcamera",
+        "position",
+        60,
+        BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+        BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+      );
+      const keyFrames = [];
+      if (canvas.width < canvas.height) {
+        keyFrames.push({
+          frame: 0,
+          value: new BABYLON.Vector3(0,oldY,-35),
+        });
+        keyFrames.push({
+          frame: 120,
+          value: new BABYLON.Vector3(0,newY,-35),
+        });
+      } else {
+        keyFrames.push({
+          frame: 0,
+          value: new BABYLON.Vector3(0,oldY,-10),
+        });
+        keyFrames.push({
+          frame: 120,
+          value: new BABYLON.Vector3(0,newY,-10),
+        });
+      }
+      animationCameraTarget.setKeys(keyFrames);
+      const easingFun2 = new BABYLON.CubicEase();
+      easingFun2.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEOUT);
+      animationCameraTarget.setEasingFunction(easingFun2);
+      mesh.animations.push(animationCameraTarget);
+      //call animation
+      scene.beginAnimation(mesh, 0, 120, false);
+    }
+
+    return scene;
+  };
+          
+  window.initFunction = async function() {
+    var asyncEngineCreation = async function() {
+      try {
+        return createDefaultEngine();
+      } catch(e) {
+        console.log("the available createEngine function failed. Creating the default engine instead");
+        return createDefaultEngine();
+        }
+      }
+      window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();
+      };
+        initFunction().then(() => {sceneToRender = scene                    
+    });
+    // Resize
+    window.addEventListener("resize", function () {
+      engine.resize();
+    });
+  
+  </script>
+</body>
+</html>
